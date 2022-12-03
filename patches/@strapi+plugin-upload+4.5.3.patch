@@ -1,0 +1,90 @@
+diff --git a/node_modules/@strapi/plugin-upload/admin/src/components/UploadAssetDialog/PendingAssetStep/PendingAssetStep.js b/node_modules/@strapi/plugin-upload/admin/src/components/UploadAssetDialog/PendingAssetStep/PendingAssetStep.js
+index 7bc0120..7d4a6c5 100644
+--- a/node_modules/@strapi/plugin-upload/admin/src/components/UploadAssetDialog/PendingAssetStep/PendingAssetStep.js
++++ b/node_modules/@strapi/plugin-upload/admin/src/components/UploadAssetDialog/PendingAssetStep/PendingAssetStep.js
+@@ -1,6 +1,7 @@
+ import React, { useState, useRef } from 'react';
+ import PropTypes from 'prop-types';
+ import { useTracking } from '@strapi/helper-plugin';
++import { Combobox, ComboboxOption } from '@strapi/design-system';
+ import { ModalHeader, ModalBody, ModalFooter } from '@strapi/design-system/ModalLayout';
+ import { Typography } from '@strapi/design-system/Typography';
+ import { Button } from '@strapi/design-system/Button';
+@@ -15,6 +16,14 @@ import { UploadingAssetCard } from '../../AssetCard/UploadingAssetCard';
+ import getTrad from '../../../utils/getTrad';
+ import { AssetDefinition } from '../../../constants';
+ 
++const UploadDestinationSelect = ({value, setValue}) => {
++  return (
++     <Combobox label="Upload Destination" value={value} onChange={setValue}>
++          <ComboboxOption value="s3LocationDefault">Default Upload Destination</ComboboxOption>
++          <ComboboxOption value="s3Location2">Upload Destination 2</ComboboxOption>
++        </Combobox>
++  );
++}
+ const Status = {
+   Idle: 'IDLE',
+   Uploading: 'UPLOADING',
+@@ -37,6 +46,7 @@ export const PendingAssetStep = ({
+   const { formatMessage } = useIntl();
+   const { trackUsage } = useTracking();
+   const [uploadStatus, setUploadStatus] = useState(Status.Idle);
++  const [selectedDestination, setSelectedDestination] = useState('s3LocationDefault');
+ 
+   const handleSubmit = async (e) => {
+     e.preventDefault();
+@@ -80,7 +90,6 @@ export const PendingAssetStep = ({
+       onUploadSucceed(file);
+     }
+   };
+-
+   return (
+     <form onSubmit={handleSubmit}>
+       <ModalHeader>
+@@ -120,11 +129,12 @@ export const PendingAssetStep = ({
+               })}
+             </Button>
+           </Flex>
++          <UploadDestinationSelect value={selectedDestination} setValue={setSelectedDestination} />          
+           <KeyboardNavigable tagName="article">
+             <Grid gap={4}>
+               {assets.map((asset) => {
+                 const assetKey = asset.url;
+-
++                asset.uploadDestination = selectedDestination
+                 if (uploadStatus === Status.Uploading || uploadStatus === Status.Intermediate) {
+                   return (
+                     <GridItem col={4} key={assetKey}>
+diff --git a/node_modules/@strapi/plugin-upload/admin/src/hooks/useUpload.js b/node_modules/@strapi/plugin-upload/admin/src/hooks/useUpload.js
+index de05d5d..06522ed 100644
+--- a/node_modules/@strapi/plugin-upload/admin/src/hooks/useUpload.js
++++ b/node_modules/@strapi/plugin-upload/admin/src/hooks/useUpload.js
+@@ -9,7 +9,7 @@ import pluginId from '../pluginId';
+ const endpoint = `/${pluginId}`;
+ 
+ const uploadAsset = (asset, folderId, cancelToken, onProgress) => {
+-  const { rawFile, caption, name, alternativeText } = asset;
++  const { rawFile, caption, name, alternativeText, uploadDestination } = asset;
+   const formData = new FormData();
+ 
+   formData.append('files', rawFile);
+@@ -21,6 +21,7 @@ const uploadAsset = (asset, folderId, cancelToken, onProgress) => {
+       caption,
+       alternativeText,
+       folder: folderId,
++      uploadDestination
+     })
+   );
+ 
+diff --git a/node_modules/@strapi/plugin-upload/server/services/upload.js b/node_modules/@strapi/plugin-upload/server/services/upload.js
+index 484b98d..8bcf60c 100644
+--- a/node_modules/@strapi/plugin-upload/server/services/upload.js
++++ b/node_modules/@strapi/plugin-upload/server/services/upload.js
+@@ -90,6 +90,7 @@ module.exports = ({ strapi }) => ({
+       ext,
+       mime: type,
+       size: bytesToKbytes(size),
++      uploadDestination: fileInfo.uploadDestination
+     };
+ 
+     const { refId, ref, field } = metas;
