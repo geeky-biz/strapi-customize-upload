@@ -11,10 +11,12 @@
   },
   "devDependencies": {},
   "dependencies": {
-    "@strapi/strapi": "4.5.3",
-    "@strapi/plugin-users-permissions": "4.5.3",
     "@strapi/plugin-i18n": "4.5.3",
-    "better-sqlite3": "7.4.6"
+    "@strapi/plugin-users-permissions": "4.5.3",
+    "@strapi/strapi": "4.5.3",
+    "better-sqlite3": "7.4.6",
+    "patch-package": "^6.5.0",
+    "strapi-provider-upload-custom": "file:providers/strapi-provider-upload-custom"
   },
   "author": {
     "name": "A Strapi developer"
